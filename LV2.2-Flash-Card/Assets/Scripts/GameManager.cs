@@ -1,63 +1,76 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Tilemaps;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] Sprite bgImage;
-    public List<Button> buttonList = new List<Button>();
-    public List<Sprite> spriteList = new List<Sprite>();
-    private bool firstGuess, secondGuess;
-    private int firstGuessIndex, secondGuessIndex;
-    private string firstGuessPuzzle, secondGuessPuzzle;
+    private static GameManager _instance;
+    public static GameManager Instance => _instance;
+    [SerializeField] List<GameObject> levels;
+    private int currentLv = 0;
+    [SerializeField] Text textLv;
+    [SerializeField] GameObject endGame;
+    [SerializeField] GameObject reloadLevel;
+    [SerializeField] AnimationClip flipDown;
+    private void Awake()
+    {
+        _instance = this;
 
+    }
     void Start()
     {
-        GetButtons();
-        AddListener();
+        showCurrentLevel();
     }
-    private void GetButtons()
+    private void showCurrentLevel()
     {
-        GameObject[] objects = GameObject.FindGameObjectsWithTag(Common.puzzleButton);
-        for (int i = 0; i < objects.Length; i++)
+        foreach (GameObject level in levels)
         {
-            buttonList.Add(objects[i].GetComponent<Button>());
-            buttonList[i].image.sprite = bgImage;
+            level.SetActive(false);
         }
-    }
-    void AddListener()
-    {
-        foreach (Button btn in buttonList)
+        if (currentLv < levels.Count)
         {
-            btn.onClick.AddListener(() => PickPuzzle());
+            levels[currentLv].SetActive(true);
+            textLv.text = Common.Turn + (currentLv + 1);
         }
-    }
-    private void PickPuzzle()
-    {
-        string name = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject.name;
-        Debug.Log(name);
-        if (!firstGuess)
+        else
         {
-            firstGuess = true;
-            
-        }
-        if (!secondGuess)
-        {
-            secondGuess = true;
-            
+            endGame.SetActive(true);
         }
     }
 
-
-
-    void Update()
+    public void nextLevel()
     {
-        
+        if (currentLv < levels.Count)
+        {
+            currentLv++;
+            showCurrentLevel();
+        }
+    }
+    public void Restart()
+    {
+        currentLv = 0;
+        showCurrentLevel();
+    }
+    public void Fail()
+    {
+        StartCoroutine(waitDeactiveReload(flipDown.length));
     }
 
+    IEnumerator waitDeactiveReload(float time)
+    {
+        yield return new WaitForSeconds(time);
+        reloadLevel.SetActive(true);
+        levels[currentLv].SetActive(false);
+    }
 
-    
+    public void onclickReload()
+    {
+        levels[currentLv].SetActive(true);
+        reloadLevel.SetActive(false);
+    }
 }
+
